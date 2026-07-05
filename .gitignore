@@ -1,0 +1,15 @@
+node_modules
+
+.env
+
+dist
+
+coverage
+
+logs
+
+*.logs
+
+.vscode/settings.json
+
+.DS_Store
