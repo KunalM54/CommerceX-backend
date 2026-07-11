@@ -1,11 +1,8 @@
 import type { Request, Response } from "express";
-import healthService from "./health.service.js";
 
-class HealthController {
-    getHealth(req: Request, res : Response) {
-        const result = healthService.getHealth();
-        res.json(result);   
-    }
-}
-
-export default new HealthController();
+export const getHealth =  (req:Request, res:Response) => {
+    res.status(200).json({
+        success : true,
+        message: "CommerceX Backend is running",
+    });
+};
