@@ -1,6 +1,7 @@
-import type { Request, Response } from "express";
 import { loginUser, registerUser } from "./auth.service.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
+import { generateAccessToken } from "../../utils/jwt.js";
+import { accessTokenCookieOptions } from "../../config/cookie.js";
 
 export const register = asyncHandler(async (req, res) => {
   const user = await registerUser(req.body);
@@ -16,10 +17,21 @@ export const register = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
-  const result = await loginUser(req.body);
+  const user = await loginUser(req.body);
 
-  res.status(200).json({
+  const accessToken = generateAccessToken({
+    userId: user.id.toString(),
+    role: user.role,
+  });
+
+  res.cookie("accessToken", accessToken, accessTokenCookieOptions);
+
+  return res.status(200).json({
     success: true,
-    data: result,
+    data: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    },
   });
 });
