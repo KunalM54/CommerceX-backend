@@ -10,19 +10,19 @@ const userSchema = new Schema (
     {
         name : {
             type : String,
-            require : true,
+            required : true,
             trim : true
         },
         email : {
             type : String,
-            require : true,
+            required : true,
             unique : true,
             lowercase : true,
             trim : true
         },
         password : {
             type : String,
-            require : true
+            required : true
         },
         role : {
             type : String,

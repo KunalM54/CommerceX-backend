@@ -1,7 +1,9 @@
 import { User } from "../user/user.model.js";
-import type { RegisterUserDto } from "./dto/register-user.dto.js";
+import type { RegisterUserDto } from "./dto/register.dto.js";
 import { AppError } from "../../utils/AppError.js";
-import { hashPassword } from "../../utils/password.js";
+import { comparePassword, hashPassword } from "../../utils/password.js";
+import type { LoginDto } from "./dto/login.dto.js";
+import { generateAccessToken } from "../../utils/jwt.js";
 
 export const registerUser = async (userData: RegisterUserDto) => {
   const existingUser = await User.findOne({
@@ -20,4 +22,34 @@ export const registerUser = async (userData: RegisterUserDto) => {
   });
 
   return user;
+};
+
+export const loginUser = async (loginDto: LoginDto) => {
+  const { email, password } = loginDto;
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new AppError(401, "Invalid email or password");
+  }
+
+  const isPasswordValid = await comparePassword(password, user.password);
+
+  if (!isPasswordValid) {
+    throw new AppError(401, "Invalid email or password");
+  }
+
+  const accessToken = generateAccessToken({
+    userId: user._id.toString(),
+    role: user.role,
+  });
+
+  return {
+    accessToken,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+    },
+  };
 };
