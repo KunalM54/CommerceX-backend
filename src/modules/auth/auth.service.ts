@@ -40,3 +40,14 @@ export const loginUser = async (loginDto: LoginDto) => {
 
   return user;
 };
+
+export const getUserProfile = async(userId : string) => {
+  const user = await User.findById(userId).select("_id name email role");
+
+  if(!user) {
+    throw new AppError(404, "User not found");
+  }
+
+  return user;
+}
+
