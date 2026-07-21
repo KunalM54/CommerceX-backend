@@ -1,26 +1,15 @@
-import { User } from "../user/user.model.js";
+import { User, UserRole } from "../user/user.model.js";
 import type { RegisterUserDto } from "./dto/register.dto.js";
 import { AppError } from "../../utils/AppError.js";
-import { comparePassword, hashPassword } from "../../utils/password.js";
+import { comparePassword } from "../../utils/password.js";
 import type { LoginDto } from "./dto/login.dto.js";
+import { createUser } from "../user/user.service.js";
 
 export const registerUser = async (userData: RegisterUserDto) => {
-  const existingUser = await User.findOne({
-    email: userData.email,
-  });
-
-  if (existingUser) {
-    throw new AppError(409, "Email already exists");
-  }
-
-  const hashedPassword = await hashPassword(userData.password);
-
-  const user = await User.create({
+  return await createUser({
     ...userData,
-    password: hashedPassword,
-  });
-
-  return user;
+    role : UserRole.CUSTOMER
+  })
 };
 
 export const loginUser = async (loginDto: LoginDto) => {
