@@ -2,6 +2,7 @@ import { hashPassword } from "../../utils/password.js";
 import { User } from "./user.model.js";
 import { AppError } from "../../utils/AppError.js"; 
 import type { createUserDto } from "./dto/create-user.dto.js";
+import { buildUserResponse } from "./user.mapper.js";
 
 export const createUser = async (userData: createUserDto) => {
   const existingUser = await User.findOne({
@@ -19,5 +20,5 @@ export const createUser = async (userData: createUserDto) => {
     password: hashedPassword,
   });
 
-  return user;
+  return buildUserResponse(user);
 };

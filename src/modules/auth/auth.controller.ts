@@ -2,17 +2,16 @@ import { loginUser, registerUser, getUserProfile } from "./auth.service.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { generateAccessToken } from "../../utils/jwt.js";
 import { accessTokenCookieOptions } from "../../config/cookie.js";
+import { sendResponse } from "../../utils/response.js";
 
 export const register = asyncHandler(async (req, res) => {
   const user = await registerUser(req.body);
 
-  res.status(201).json({
+  return sendResponse(res, {
+    statusCode: 201,
+    success: true,
     message: "User created successfully",
-    data: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    },
+    data: user,
   });
 });
 
@@ -26,21 +25,21 @@ export const login = asyncHandler(async (req, res) => {
 
   res.cookie("accessToken", accessToken, accessTokenCookieOptions);
 
-  res.status(200).json({
+  return sendResponse(res, {
+    statusCode: 200,
     success: true,
-    data: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    },
+    message: "User login successfully",
+    data: user,
   });
 });
 
 export const getMe = asyncHandler(async (req, res) => {
   const user = await getUserProfile(req.user.userId);
 
-  res.status(200).json({
+  return sendResponse(res, {
+    statusCode: 200,
     success: true,
+    message: "User fatched successfully",
     data: user,
   });
 });
@@ -48,8 +47,9 @@ export const getMe = asyncHandler(async (req, res) => {
 export const logout = asyncHandler(async (req, res) => {
   res.clearCookie("accessToken", accessTokenCookieOptions);
 
-  res.status(200).json({
+  return sendResponse(res, {
+    statusCode: 200,
     success: true,
-    message: "Logged out successfully",
+    message: "User logout successfully",
   });
 });
