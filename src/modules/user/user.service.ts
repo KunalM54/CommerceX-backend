@@ -4,6 +4,7 @@ import { AppError } from "../../utils/AppError.js";
 import type { createUserDto } from "./dto/create-user.dto.js";
 import { buildUserResponse } from "./user.mapper.js";
 import mongoose from "mongoose";
+import type { UpdateUserBody } from "./user.types.js";
 
 export const createUser = async (userData: createUserDto) => {
   const existingUser = await User.findOne({
@@ -40,6 +41,42 @@ export const getUserById = async (userId: string) => {
   if (!user) {
     throw new AppError(404, "User not found");
   }
+
+  return buildUserResponse(user);
+};
+
+export const updateUser = async (id: string, payload: UpdateUserBody) => {
+  const user = await User.findById(id);
+
+  if (!user) {
+    throw new AppError(404, "User not found");
+  }
+
+  if (payload.email && payload.email !== user.email) {
+    const existingUser = await User.findOne({ email: payload.email });
+
+    if (existingUser) {
+      throw new AppError(409, "Email already exists");
+    }
+  }
+
+  if (payload.name !== undefined) {
+    user.name = payload.name;
+  }
+
+  if (payload.email !== undefined) {
+    user.email = payload.email;
+  }
+
+  if (payload.role !== undefined) {
+    user.role = payload.role;
+  }
+
+  if (payload.isActive !== undefined) {
+    user.isActive = payload.isActive;
+  }
+
+  await user.save();
 
   return buildUserResponse(user);
 };

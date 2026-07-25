@@ -2,10 +2,12 @@ import { asyncHandler } from "../../utils/asyncHandler.js";
 import { createUser, getAllUser, getUserById } from "./user.service.js";
 import { sendResponse } from "../../utils/response.js";
 import type { Request, Response } from "express";
+import { updateUser } from "./user.service.js";
+import type { UpdateUserBody } from "./user.types.js";
 
 type GetUserByIDParams = {
-  id : string
-}
+  id: string;
+};
 
 export const createUserController = asyncHandler(async (req, res) => {
   const user = await createUser(req.body);
@@ -29,15 +31,30 @@ export const getAllUserController = asyncHandler(async (req, res) => {
   });
 });
 
-export const getUserByIdController = asyncHandler(async (req : Request<GetUserByIDParams>, res : Response) => {
-  const { id } = req.params;
+export const getUserByIdController = asyncHandler(
+  async (req: Request<GetUserByIDParams>, res: Response) => {
+    const { id } = req.params;
 
-  const user = await getUserById(id);
+    const user = await getUserById(id);
 
-  return sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "User fetched successfully",
-    data: user,
-  });
-});
+    return sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "User fetched successfully",
+      data: user,
+    });
+  },
+);
+
+export const updateUserController = asyncHandler(
+  async (req: Request<{ id: string }, {}, UpdateUserBody>, res: Response) => {
+    const updatedUser = await updateUser(req.params.id, req.body);
+
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "User updated successfully.",
+      data: updatedUser,
+    });
+  },
+);
