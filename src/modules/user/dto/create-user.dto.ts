@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { UserRole } from "../user.model.js";
+import { PHONE_REGEX } from "../user.validation.js";
 
 export const createUserSchema = z.object({
   name: z
@@ -16,6 +17,15 @@ export const createUserSchema = z.object({
     .max(10, "Password cannot exceed 10 characters"),
 
   role: z.nativeEnum(UserRole),
+
+  phone: z
+    .string()
+    .trim()
+    .regex(
+      PHONE_REGEX,
+      "Invalid phone number. Use E.164 format (e.g. +919876543210).",
+    )
+    .optional(),
 });
 
 export type createUserDto = z.infer<typeof createUserSchema>;

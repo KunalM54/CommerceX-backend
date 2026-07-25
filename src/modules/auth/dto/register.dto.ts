@@ -1,21 +1,28 @@
-import { z } from 'zod';
+import { z } from "zod";
+import { PHONE_REGEX } from "../../user/user.validation.js";
 
 export const registerSchema = z.object({
-    name : z
+  name: z
     .string()
     .trim()
-    .min(3, 'Name must be at least 3 characters long')
-    .max(50, 'Name cannot exceed 50 characters'),
+    .min(3, "Name must be at least 3 characters long")
+    .max(50, "Name cannot exceed 50 characters"),
 
-    email : z
+  email: z.string().trim().email("Please enter a valid email address"),
+
+  password: z
+    .string()
+    .min(4, "Password must be at least 4 characters")
+    .max(10, "Password cannot exceed 10 characters"),
+
+  phone: z
     .string()
     .trim()
-    .email('Please enter a valid email address'),
-
-    password : z
-    .string()
-    .min(4, 'Password must be at least 4 characters')
-    .max(10, 'Password cannot exceed 10 characters')
-}) 
+    .regex(
+      PHONE_REGEX,
+      "Invalid phone number. Use E.164 format (e.g. +919876543210).",
+    )
+    .optional(),
+});
 
 export type RegisterUserDto = z.infer<typeof registerSchema>;

@@ -7,20 +7,33 @@ import mongoose from "mongoose";
 import type { UpdateUserBody } from "./user.types.js";
 
 export const createUser = async (userData: createUserDto) => {
-  const existingUser = await User.findOne({
+  const existingEmail = await User.findOne({
     email: userData.email,
   });
 
-  if (existingUser) {
+  if (existingEmail) {
     throw new AppError(409, "Email already exists");
+  }
+
+  if (userData.phone) {
+    const existingPhone = await User.findOne({ phone: userData.phone });
+
+    if (existingPhone) {
+      throw new AppError(409, "Phone number already exists");
+    }
   }
 
   const hashedPassword = await hashPassword(userData.password);
 
-  const user = await User.create({
-    ...userData,
+  const userPayload = {
+    name: userData.name,
+    email: userData.email,
     password: hashedPassword,
-  });
+    role: userData.role,
+    ...(userData.phone && { phone: userData.phone }),
+  };
+
+  const user = await User.create(userPayload);
 
   return buildUserResponse(user);
 };
@@ -60,6 +73,21 @@ export const updateUser = async (id: string, payload: UpdateUserBody) => {
     }
   }
 
+  if (payload.phone && payload.phone !== user.phone) {
+    const existingPhone = await User.findOne({ phone: payload.phone });
+
+    if (existingPhone) {
+      throw new AppError(409, "Phone number already exists");
+    }
+  }
+
+  if (payload.phone !== undefined) {
+    if (payload.phone !== user.phone) {
+      user.phone = payload.phone;
+      user.isPhoneVerified = false;
+    }
+  }
+  
   if (payload.name !== undefined) {
     user.name = payload.name;
   }

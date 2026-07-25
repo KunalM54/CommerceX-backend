@@ -5,6 +5,8 @@ export const buildUserResponse = (user: any): UserResponse => {
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone,
+    isPhoneVerified : user.isPhoneVerified,
     role: user.role,
     isActive: user.isActive,
   };

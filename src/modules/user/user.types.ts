@@ -6,6 +6,8 @@ export type UserResponse = {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+  isPhoneVerified: boolean;
   role: UserRole;
   isActive: boolean;
 };
