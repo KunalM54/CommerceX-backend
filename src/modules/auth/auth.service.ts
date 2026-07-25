@@ -30,6 +30,10 @@ export const loginUser = async (loginDto: LoginDto) => {
     throw new AppError(401, "Invalid email or password");
   }
 
+  if(!user.isActive) { 
+    throw new AppError(403, "Your account has been deactivated");
+  }
+
   return buildUserResponse(user);;
 };
 

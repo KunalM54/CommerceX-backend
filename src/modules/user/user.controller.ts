@@ -1,7 +1,12 @@
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import { createUser, getAllUser, getUserById } from "./user.service.js";
+import {
+  createUser,
+  deleteUser,
+  getAllUser,
+  getUserById,
+} from "./user.service.js";
 import { sendResponse } from "../../utils/response.js";
-import type { Request, Response } from "express";
+import { request, type Request, type Response } from "express";
 import { updateUser } from "./user.service.js";
 import type { UpdateUserBody } from "./user.types.js";
 
@@ -46,15 +51,30 @@ export const getUserByIdController = asyncHandler(
   },
 );
 
-export const updateUserController = asyncHandler(
-  async (req: Request<{ id: string }, {}, UpdateUserBody>, res: Response) => {
-    const updatedUser = await updateUser(req.params.id, req.body);
+export const updateUserController = asyncHandler<
+  { id: string },
+  {},
+  UpdateUserBody
+>(async (req, res) => {
+  const updatedUser = await updateUser(req.params.id, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "User updated successfully.",
+    data: updatedUser,
+  });
+});
+
+export const deleteUserController = asyncHandler<{ id: string }>(
+  async (req, res) => {
+    const deletedUser = await deleteUser(req.params.id);
 
     sendResponse(res, {
       statusCode: 200,
       success: true,
-      message: "User updated successfully.",
-      data: updatedUser,
+      message: "User deleted successfully.",
+      data: deletedUser,
     });
   },
 );

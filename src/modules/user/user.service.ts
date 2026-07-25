@@ -80,3 +80,24 @@ export const updateUser = async (id: string, payload: UpdateUserBody) => {
 
   return buildUserResponse(user);
 };
+
+export const deleteUser = async (id: string) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError(400, "Invalid user ID");
+  }
+
+  const user = await User.findById(id);
+
+  if (!user) {
+    throw new AppError(404, "User not found");
+  }
+
+  if (!user.isActive) {
+    throw new AppError(400, "User is already inactive");
+  }
+
+  user.isActive = false;
+  await user.save();
+
+  return buildUserResponse(user);
+};

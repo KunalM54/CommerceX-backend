@@ -3,7 +3,7 @@ import { authenticate } from "../../middleware/auth.middleware.js";
 import { User, UserRole } from "./user.model.js";
 import { validate } from "../../middleware/validate.js";
 import { createUserSchema } from "./dto/create-user.dto.js";
-import { createUserController, getAllUserController, getUserByIdController, updateUserController } from "./user.controller.js";
+import { createUserController, deleteUserController, getAllUserController, getUserByIdController, updateUserController } from "./user.controller.js";
 import { authorize } from "../../middleware/authorize.middleware.js";
 import { updateUserSchema } from "./user.validation.js";
 
@@ -13,5 +13,6 @@ router.post("/create", authenticate, authorize(UserRole.ADMIN), validate(createU
 router.get("/getAll", authenticate, authorize(UserRole.ADMIN), getAllUserController);
 router.get("/:id",authenticate, authorize(UserRole.ADMIN),  validate(updateUserSchema), getUserByIdController);
 router.patch("/:id",authenticate, authorize(UserRole.ADMIN), validate(updateUserSchema), updateUserController);
+router.delete("/:id",authenticate, authorize(UserRole.ADMIN), deleteUserController);
 
 export default router;
