@@ -1,4 +1,10 @@
-import { loginUser, registerUser, getUserProfile } from "./auth.service.js";
+import {
+  loginUser,
+  registerUser,
+  getUserProfile,
+  sendPhoneOtp,
+  verifyPhoneOtp,
+} from "./auth.service.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { generateAccessToken } from "../../utils/jwt.js";
 import { accessTokenCookieOptions } from "../../config/cookie.js";
@@ -53,3 +59,31 @@ export const logout = asyncHandler(async (req, res) => {
     message: "User logout successfully",
   });
 });
+
+export const sendPhoneOtpController = asyncHandler(async (req, res) => {
+  console.log(req.user);
+  console.log(req.user.userId);
+  const result = await sendPhoneOtp(req.user.userId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+export const verifyPhoneOtpController = asyncHandler(async (req, res) => {
+  const result = await verifyPhoneOtp(
+    req.user.userId,
+    req.body.otp
+  );
+
+  sendResponse(res, {
+    statusCode : 200,
+    success : true,
+    message : result.message,
+    data : null
+  })
+
+})
