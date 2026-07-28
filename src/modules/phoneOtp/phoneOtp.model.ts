@@ -1,24 +1,30 @@
 import { model, Schema } from "mongoose";
 
-const phoneOtpSchema = new Schema({
-  phone: {
-    type: String,
-    required: true,
-    trim : true
+export interface IPhoneOtp {
+  phone: string;
+  otp: string;
+  expiresAt: Date;
+}
+
+const phoneOtpSchema = new Schema<IPhoneOtp>(
+  {
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    otp: {
+      type: String,
+      required: true,
+    },
+    expiresAt: {
+      type: Date,
+      required: true,
+    },
   },
-  otp: {
-    type: String,
-    required : true
+  {
+    timestamps: true,
   },
-  expiresAt : {
-    type : Date,
-    required : true,
-  }
-},
-{
-    timestamps : true
-});
+);
 
-export const PhoneOtp = model("PhoneOtp",phoneOtpSchema);
-
-
+export const PhoneOtp = model<IPhoneOtp>("PhoneOtp", phoneOtpSchema);

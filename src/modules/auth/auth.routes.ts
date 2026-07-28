@@ -6,12 +6,14 @@ import {
   register,
   sendPhoneOtpController,
   verifyPhoneOtpController,
+  forgotPasswordController,
+  resetPasswordController,
 } from "./auth.controller.js";
 import { validate } from "../../middleware/validate.js";
 import { registerSchema } from "./dto/register.dto.js";
 import { loginSchema } from "./dto/login.dto.js";
 import { authenticate } from "../../middleware/auth.middleware.js";
-import { verifyPhoneOtpSchema } from "./auth.validation.js";
+import { verifyPhoneOtpSchema, forgotPasswordSchema, resetPasswordSchema } from "./auth.validation.js";
 
 const router = Router();
 
@@ -21,5 +23,7 @@ router.get("/me", authenticate, getMe);
 router.post("/logout", logout);
 router.post("/send-phone-otp", authenticate, sendPhoneOtpController);
 router.post("/verify-phone-otp",  authenticate, validate(verifyPhoneOtpSchema), verifyPhoneOtpController);
+router.post("/forgot-password", validate(forgotPasswordSchema), forgotPasswordController);
+router.post("/reset-password", validate(resetPasswordSchema), resetPasswordController);
 
 export default router;

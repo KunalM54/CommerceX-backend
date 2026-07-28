@@ -6,7 +6,17 @@ export enum UserRole {
   SELLER = "SELLER",
 }
 
-const userSchema = new Schema(
+export interface IUser {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  isPhoneVerified: boolean;
+  role: UserRole;
+  isActive: boolean;
+}
+
+const userSchema = new Schema<IUser>(
   {
     name: {
       type: String,
@@ -50,4 +60,4 @@ const userSchema = new Schema(
   },
 );
 
-export const User = model("User", userSchema);
+export const User = model<IUser>("User", userSchema);

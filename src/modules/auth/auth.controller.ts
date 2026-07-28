@@ -4,6 +4,8 @@ import {
   getUserProfile,
   sendPhoneOtp,
   verifyPhoneOtp,
+  forgotPassword,
+  resetPassword,
 } from "./auth.service.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { generateAccessToken } from "../../utils/jwt.js";
@@ -87,3 +89,28 @@ export const verifyPhoneOtpController = asyncHandler(async (req, res) => {
   })
 
 })
+
+export const forgotPasswordController = asyncHandler(async (req, res) => {
+  const result = await forgotPassword(req.body.identifier);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+export const resetPasswordController = asyncHandler(async (req, res) => {
+  const { identifier, token, password } = req.body;
+  const result = await resetPassword(identifier, token, password);
+
+  res.clearCookie("accessToken", accessTokenCookieOptions);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
