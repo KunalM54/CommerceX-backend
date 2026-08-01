@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
     "name": "CommerceX API",
-    "description": "Postman collection for the CommerceX e-commerce backend.\n\n## Base URL\n- Default: `http://localhost:3000/api/v1` (change the `baseUrl` collection variable if needed)\n\n## Authentication\nThis API uses an **httpOnly cookie** named `accessToken`, NOT a Bearer token.\n\n1. Call **POST /auth/login** (or `/auth/register`).\n2. The login response sets the `accessToken` cookie. The collection automatically captures the token into the `accessToken` variable.\n3. A collection-level pre-request script adds the `Cookie: accessToken=...` header to every request automatically, so protected routes \"just work\".\n\n## How the auto-variables work\n- Creating a **Category** saves its `_id` into `categoryId`.\n- Creating a **Brand** saves its `_id` into `brandId`.\n- Creating a **Product** saves its `id` into `productId`, and its first variant's `id` into `variantId`.\n- Creating an **Inventory** saves its `id` into `inventoryId`.\n- Creating a **User** (admin) saves its `id` into `userId`.\n\nThis means you can run the requests in order and they will chain together automatically.\n\n## Suggested workflow\n1. POST /auth/register (customer)\n2. POST /auth/login\n3. Create an admin user via **POST /users/create** with `\"role\": \"ADMIN\"`, then login with that admin account to access admin-only routes.\n4. Create a category, then a brand, then a product.\n\n## Notes\n- Password rules: 4 to 10 characters.\n- Phone number must use E.164 format, e.g. `+919876543210`.\n- The `/forgot-password` flow prints the reset token / OTP to the **server console** in development. Copy it from there into the `/reset-password` body.\n- Deletes are **soft deletes** (they set `isActive: false`), so the record still exists but is hidden from public listing.",
+    "description": "Postman collection for the CommerceX e-commerce backend.\n\n## Base URL\n- Default: `http://localhost:3000/api/v1` (change the `baseUrl` collection variable if needed)\n\n## Authentication\nThis API uses an **httpOnly cookie** named `accessToken`, NOT a Bearer token.\n\n1. Call **POST /auth/login** (or `/auth/register`).\n2. The login response sets the `accessToken` cookie. The collection automatically captures the token into the `accessToken` variable.\n3. A collection-level pre-request script adds the `Cookie: accessToken=...` header to every request automatically, so protected routes \"just work\".\n\n## How the auto-variables work\n- Creating a **Category** saves its `_id` into `categoryId`.\n- Creating a **Brand** saves its `_id` into `brandId`.\n- Creating a **Product** saves its `id` into `productId`, and its first variant's `id` into `variantId`.\n- Creating an **Inventory** saves its `id` into `inventoryId`.\n- Creating a **User** (admin) saves its `id` into `userId`.\n\nThe **Cart** endpoints all act on the **currently logged-in user's** cart (one cart per user) and use `{{variantId}}` for their items.\n\nThis means you can run the requests in order and they will chain together automatically.\n\n## Suggested workflow\n1. POST /auth/register (customer)\n2. POST /auth/login\n3. Create an admin user via **POST /users/create** with `\"role\": \"ADMIN\"`, then login with that admin account to access admin-only routes.\n4. Create a category, then a brand, then a product.\n\n## Notes\n- Password rules: 4 to 10 characters.\n- Phone number must use E.164 format, e.g. `+919876543210`.\n- The `/forgot-password` flow prints the reset token / OTP to the **server console** in development. Copy it from there into the `/reset-password` body.\n- Deletes are **soft deletes** (they set `isActive: false`), so the record still exists but is hidden from public listing.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -818,6 +818,81 @@
               "path": ["inventory", "{{inventoryId}}"]
             },
             "description": "Requires **ADMIN** or **SELLER** login. **Soft deletes** the inventory record (sets `isActive: false`).\n\nFails with 400 if already inactive."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "GET Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["cart"]
+            },
+            "description": "Requires login (any role). Returns the logged-in user's **cart summary**: list of items plus `totalItems` (sum of quantities) and `subtotal`.\n\nIf the user has no cart yet, an empty one is created automatically.\n\nEach item shows the product (id/name/slug), variant id, SKU, snapshot name/price/image, quantity, and computed `lineTotal`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Add Item",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"variantId\": \"{{variantId}}\",\n  \"quantity\": 2\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cart/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["cart", "items"]
+            },
+            "description": "Requires login (any role). Adds a product variant to the user's cart.\n\nBody fields:\n- `variantId` (required, must be an **active** variant of an active product)\n- `quantity` (whole number > 0, required)\n\nIf the variant is already in the cart, its quantity is **incremented**.\n\nThe item is rejected (409) if the requested quantity exceeds what's sellable (`stock - reserved` from the Inventory module). Name/SKU/price/image are snapshotted from the variant at add time.\n\nUses `{{variantId}}`, which is auto-filled with the first variant of the last product you created."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH Update Quantity",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 5\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/cart/items/{{variantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["cart", "items", "{{variantId}}"]
+            },
+            "description": "Requires login (any role). Sets the **absolute** quantity for an item already in the cart.\n\nBody:\n- `quantity` (whole number > 0, required)\n\nPath param:\n- `variantId`: the variant to update (auto-filled from Create Product).\n\nReturns 404 if the variant isn't in the cart, and 409 if the quantity exceeds sellable stock."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Remove Item",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cart/items/{{variantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["cart", "items", "{{variantId}}"]
+            },
+            "description": "Requires login (any role). Removes an item completely from the cart.\n\nPath param:\n- `variantId`: the variant to remove (auto-filled from Create Product).\n\nReturns 404 if the variant isn't in the cart."
           },
           "response": []
         }
