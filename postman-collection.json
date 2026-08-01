@@ -1,0 +1,684 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+    "name": "CommerceX API",
+    "description": "Postman collection for the CommerceX e-commerce backend.\n\n## Base URL\n- Default: `http://localhost:3000/api/v1` (change the `baseUrl` collection variable if needed)\n\n## Authentication\nThis API uses an **httpOnly cookie** named `accessToken`, NOT a Bearer token.\n\n1. Call **POST /auth/login** (or `/auth/register`).\n2. The login response sets the `accessToken` cookie. The collection automatically captures the token into the `accessToken` variable.\n3. A collection-level pre-request script adds the `Cookie: accessToken=...` header to every request automatically, so protected routes \"just work\".\n\n## How the auto-variables work\n- Creating a **Category** saves its `_id` into `categoryId`.\n- Creating a **Brand** saves its `_id` into `brandId`.\n- Creating a **Product** saves its `id` into `productId`.\n- Creating a **User** (admin) saves its `id` into `userId`.\n\nThis means you can run the requests in order and they will chain together automatically.\n\n## Suggested workflow\n1. POST /auth/register (customer)\n2. POST /auth/login\n3. Create an admin user via **POST /users/create** with `\"role\": \"ADMIN\"`, then login with that admin account to access admin-only routes.\n4. Create a category, then a brand, then a product.\n\n## Notes\n- Password rules: 4 to 10 characters.\n- Phone number must use E.164 format, e.g. `+919876543210`.\n- The `/forgot-password` flow prints the reset token / OTP to the **server console** in development. Copy it from there into the `/reset-password` body.\n- Deletes are **soft deletes** (they set `isActive: false`), so the record still exists but is hidden from public listing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Public. Returns `{ success, message }` to confirm the server is running."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"1234\",\n  \"phone\": \"+919876543210\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Public. Creates a new **CUSTOMER** account.\n\nBody fields:\n- `name` (3-50 chars, required)\n- `email` (valid email, required, unique)\n- `password` (4-10 chars, required)\n- `phone` (E.164 format like +919876543210, optional, unique)\n\nNote: registration does NOT set a cookie. Use **POST /auth/login** afterwards to get the `accessToken` cookie."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"1234\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Public. Logs in and sets the `accessToken` **httpOnly cookie** (24h expiry).\n\nA test script automatically reads the `accessToken` from the `Set-Cookie` response header and stores it in the collection variable `accessToken`. Every protected request after this will include it automatically."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const setCookieHeader = pm.response.headers.get('set-cookie');",
+                  "if (setCookieHeader) {",
+                  "  const match = setCookieHeader.match(/accessToken=([^;]+)/);",
+                  "  if (match) {",
+                  "    pm.collectionVariables.set('accessToken', match[1]);",
+                  "    console.log('Access token captured successfully');",
+                  "  } else {",
+                  "    console.log('Login succeeded but no accessToken cookie found in Set-Cookie');",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Requires login. Returns the profile of the currently authenticated user. Run **POST /auth/login** first."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Public. Clears the `accessToken` cookie. No request body needed."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Send Phone OTP",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/send-phone-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "send-phone-otp"]
+            },
+            "description": "Requires login. Sends a 6-digit OTP to the logged-in user's phone (stored server-side, 5 min expiry).\n\nRequirements: the user must have a `phone` saved and `isPhoneVerified` must be false. In development the OTP is printed to the server console."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Verify Phone OTP",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-phone-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-phone-otp"]
+            },
+            "description": "Requires login. Verifies the phone OTP sent by **POST /auth/send-phone-otp**.\n\nBody:\n- `otp`: exactly 6 digits (required)"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"john@example.com\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password"]
+            },
+            "description": "Public.\n\nBody:\n- `identifier`: an email **or** E.164 phone number.\n\nIf email: creates a 15-min password-reset token (printed to the server console in development).\nIf phone: sends a 6-digit OTP (also printed to console). Always returns a generic message for security."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"john@example.com\",\n  \"token\": \"REPLACE_WITH_TOKEN_FROM_SERVER_LOG\",\n  \"password\": \"1234\",\n  \"confirmPassword\": \"1234\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
+            },
+            "description": "Public. Completes the password reset.\n\nBody:\n- `identifier`: same email/phone used in **forgot-password**.\n- `token`: the reset token (email flow) or the OTP (phone flow) from the server console.\n- `password` and `confirmPassword`: 4-10 chars, must match.\n\nClears the existing login cookie on success."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users (Admin only)",
+      "item": [
+        {
+          "name": "POST Create User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"1234\",\n  \"role\": \"ADMIN\",\n  \"phone\": \"+911234567890\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "create"]
+            },
+            "description": "Requires **ADMIN** login.\n\nBody fields:\n- `name` (3-50 chars, required)\n- `email` (valid, required, unique)\n- `password` (4-10 chars, required)\n- `role`: `CUSTOMER` | `ADMIN` | `SELLER` (required)\n- `phone` (E.164 format, optional, unique)\n\nA test script saves the created user's `id` into the `userId` collection variable.\n\nTip: create an ADMIN here, then log in with it to unlock the admin routes."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('userId', json.data.id);",
+                  "    console.log('userId saved: ' + json.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/getAll",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "getAll"]
+            },
+            "description": "Requires **ADMIN** login. Returns all users. No request body."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "Requires **ADMIN** login. Fetches a single user.\n\nPath param:\n- `userId`: set automatically when you run **POST /users/create** (or set it manually)."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Admin Name\",\n  \"phone\": \"+919111111111\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "Requires **ADMIN** login. Partially updates a user. At least one field is required.\n\nOptional fields:\n- `name`\n- `email` (must not already exist)\n- `role`\n- `phone` (E.164 format; changing it resets `isPhoneVerified` to false)\n- `isActive` (boolean)"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "Requires **ADMIN** login. **Soft deletes** the user by setting `isActive: false`.\n\nFails with 400 if the user is already inactive."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "GET Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Public. Returns all categories sorted alphabetically by name."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Get Category By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{categoryId}}"]
+            },
+            "description": "Public. Fetches a single category.\n\nPath param:\n- `categoryId`: set automatically when you run **POST Create Category** (or set it manually)."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Create Category",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Electronics\",\n  \"description\": \"Gadgets, mobile phones, laptops and accessories\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            },
+            "description": "Requires **ADMIN** login.\n\nBody fields:\n- `name` (2-50 chars, required, must be unique)\n- `description` (max 200 chars, optional)\n\nThe `slug` is generated automatically from the name.\n\nA test script saves the created category's `_id` into the `categoryId` collection variable (used by the product endpoints)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data._id) {",
+                  "    pm.collectionVariables.set('categoryId', json.data._id);",
+                  "    console.log('categoryId saved: ' + json.data._id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "PATCH Update Category",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Electronic Devices\",\n  \"description\": \"Updated category description\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{categoryId}}"]
+            },
+            "description": "Requires **ADMIN** login. Partially updates a category. At least one field is required.\n\nChanging `name` also regenerates the slug and rejects names that already exist."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "{{categoryId}}"]
+            },
+            "description": "Requires **ADMIN** login. **Soft deletes** the category (sets `isActive: false`).\n\nFails with 400 if already inactive."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Brands",
+      "item": [
+        {
+          "name": "GET Get All Brands",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/brands",
+              "host": ["{{baseUrl}}"],
+              "path": ["brands"]
+            },
+            "description": "Public. Returns all brands sorted alphabetically by name."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Get Brand By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/brands/{{brandId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["brands", "{{brandId}}"]
+            },
+            "description": "Public. Fetches a single brand.\n\nPath param:\n- `brandId`: set automatically when you run **POST Create Brand** (or set it manually)."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Create Brand",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Apple\",\n  \"description\": \"Premium technology brand\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/brands",
+              "host": ["{{baseUrl}}"],
+              "path": ["brands"]
+            },
+            "description": "Requires **ADMIN** login.\n\nBody fields:\n- `name` (2-50 chars, required, must be unique)\n- `description` (max 200 chars, optional)\n\nThe `slug` is generated automatically from the name.\n\nA test script saves the created brand's `_id` into the `brandId` collection variable (used by the product endpoints)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data._id) {",
+                  "    pm.collectionVariables.set('brandId', json.data._id);",
+                  "    console.log('brandId saved: ' + json.data._id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "PATCH Update Brand",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated brand description\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/brands/{{brandId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["brands", "{{brandId}}"]
+            },
+            "description": "Requires **ADMIN** login. Partially updates a brand. At least one field is required.\n\nChanging `name` also regenerates the slug and rejects names that already exist."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Delete Brand",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/brands/{{brandId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["brands", "{{brandId}}"]
+            },
+            "description": "Requires **ADMIN** login. **Soft deletes** the brand (sets `isActive: false`).\n\nFails with 400 if already inactive."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "GET Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?categoryId={{categoryId}}&brandId={{brandId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "description": "Optional. Filter products by category. Auto-filled after you create a category."
+                },
+                {
+                  "key": "brandId",
+                  "value": "{{brandId}}",
+                  "description": "Optional. Filter products by brand. Auto-filled after you create a brand."
+                }
+              ]
+            },
+            "description": "Public. Returns only **active** products, newest first.\n\nBoth query params are optional. Remove them (or leave them empty) to list every active product."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Get Product By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "{{productId}}"]
+            },
+            "description": "Public. Fetches a single **active** product.\n\nPath param:\n- `productId`: set automatically when you run **POST Create Product** (or set it manually)."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Create Product",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"iPhone 15 Pro Max\",\n  \"description\": \"Latest flagship smartphone from Apple\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"brandId\": \"{{brandId}}\",\n  \"images\": [\n    \"https://example.com/iphone-1.jpg\",\n    \"https://example.com/iphone-2.jpg\"\n  ],\n  \"variants\": [\n    {\n      \"name\": \"iPhone 15 Pro Max 256GB Black\",\n      \"attributes\": {\n        \"color\": \"Black\",\n        \"storage\": \"256GB\"\n      },\n      \"sku\": \"IP15PM-256-BLK\",\n      \"price\": 134900,\n      \"images\": [\n        \"https://example.com/iphone-256-black.jpg\"\n      ]\n    },\n    {\n      \"name\": \"iPhone 15 Pro Max 256GB Titanium\",\n      \"attributes\": {\n        \"color\": \"Natural Titanium\",\n        \"storage\": \"256GB\"\n      },\n      \"sku\": \"IP15PM-256-TIT\",\n      \"price\": 134900,\n      \"images\": []\n    }\n  ]\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            },
+            "description": "Requires **ADMIN** or **SELLER** login. Creates a product.\n\nImportant: create a **category** and a **brand** first — the body references `{{categoryId}}` and `{{brandId}}`, which are auto-filled from the Create Category / Create Brand requests.\n\nBody fields:\n- `name` (3-100 chars, required)\n- `description` (max 1000 chars, optional)\n- `categoryId` (required, must exist)\n- `brandId` (required, must exist)\n- `images` (array of URL strings, optional)\n- `variants` (at least 1, required):\n  - `name` (required)\n  - `sku` (required, **must be unique** — case-insensitive)\n  - `price` (must be > 0)\n  - `attributes` (object of strings, optional, e.g. color/storage)\n  - `images` (optional)\n\nThe seller is taken from the logged-in user automatically. A test script saves the product's `id` into the `productId` collection variable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('productId', json.data.id);",
+                  "    console.log('productId saved: ' + json.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "PATCH Update Product",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"iPhone 15 Pro Max (Updated)\",\n  \"description\": \"Updated product description\",\n  \"variants\": [\n    {\n      \"name\": \"iPhone 15 Pro Max 256GB Black\",\n      \"sku\": \"IP15PM-256-BLK\",\n      \"price\": 129900\n    }\n  ]\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "{{productId}}"]
+            },
+            "description": "Requires **ADMIN** or **SELLER** login. Partially updates a product. At least one field is required.\n\n- A **SELLER** can only update their **own** products (403 otherwise). An **ADMIN** can update anything.\n- Changing `name` regenerates the slug.\n- Replacing `variants` re-checks for duplicate SKUs.\n- When replacing variants, every variant must include `name`, `sku`, and `price` (they are required by the variant schema)."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "{{productId}}"]
+            },
+            "description": "Requires **ADMIN** or **SELLER** login. **Soft deletes** the product (sets `isActive: false`).\n\n- A **SELLER** can only delete their **own** products (403 otherwise).\n- Fails with 400 if the product is already inactive."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const token = pm.collectionVariables.get('accessToken');",
+          "if (token) {",
+          "  pm.request.headers.add({ key: 'Cookie', value: 'accessToken=' + token });",
+          "  console.log('Cookie header added for authenticated request');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "categoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "brandId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
