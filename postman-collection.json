@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
     "name": "CommerceX API",
-    "description": "Postman collection for the CommerceX e-commerce backend.\n\n## Base URL\n- Default: `http://localhost:3000/api/v1` (change the `baseUrl` collection variable if needed)\n\n## Authentication\nThis API uses an **httpOnly cookie** named `accessToken`, NOT a Bearer token.\n\n1. Call **POST /auth/login** (or `/auth/register`).\n2. The login response sets the `accessToken` cookie. The collection automatically captures the token into the `accessToken` variable.\n3. A collection-level pre-request script adds the `Cookie: accessToken=...` header to every request automatically, so protected routes \"just work\".\n\n## How the auto-variables work\n- Creating a **Category** saves its `_id` into `categoryId`.\n- Creating a **Brand** saves its `_id` into `brandId`.\n- Creating a **Product** saves its `id` into `productId`.\n- Creating a **User** (admin) saves its `id` into `userId`.\n\nThis means you can run the requests in order and they will chain together automatically.\n\n## Suggested workflow\n1. POST /auth/register (customer)\n2. POST /auth/login\n3. Create an admin user via **POST /users/create** with `\"role\": \"ADMIN\"`, then login with that admin account to access admin-only routes.\n4. Create a category, then a brand, then a product.\n\n## Notes\n- Password rules: 4 to 10 characters.\n- Phone number must use E.164 format, e.g. `+919876543210`.\n- The `/forgot-password` flow prints the reset token / OTP to the **server console** in development. Copy it from there into the `/reset-password` body.\n- Deletes are **soft deletes** (they set `isActive: false`), so the record still exists but is hidden from public listing.",
+    "description": "Postman collection for the CommerceX e-commerce backend.\n\n## Base URL\n- Default: `http://localhost:3000/api/v1` (change the `baseUrl` collection variable if needed)\n\n## Authentication\nThis API uses an **httpOnly cookie** named `accessToken`, NOT a Bearer token.\n\n1. Call **POST /auth/login** (or `/auth/register`).\n2. The login response sets the `accessToken` cookie. The collection automatically captures the token into the `accessToken` variable.\n3. A collection-level pre-request script adds the `Cookie: accessToken=...` header to every request automatically, so protected routes \"just work\".\n\n## How the auto-variables work\n- Creating a **Category** saves its `_id` into `categoryId`.\n- Creating a **Brand** saves its `_id` into `brandId`.\n- Creating a **Product** saves its `id` into `productId`, and its first variant's `id` into `variantId`.\n- Creating an **Inventory** saves its `id` into `inventoryId`.\n- Creating a **User** (admin) saves its `id` into `userId`.\n\nThis means you can run the requests in order and they will chain together automatically.\n\n## Suggested workflow\n1. POST /auth/register (customer)\n2. POST /auth/login\n3. Create an admin user via **POST /users/create** with `\"role\": \"ADMIN\"`, then login with that admin account to access admin-only routes.\n4. Create a category, then a brand, then a product.\n\n## Notes\n- Password rules: 4 to 10 characters.\n- Phone number must use E.164 format, e.g. `+919876543210`.\n- The `/forgot-password` flow prints the reset token / OTP to the **server console** in development. Copy it from there into the `/reset-password` body.\n- Deletes are **soft deletes** (they set `isActive: false`), so the record still exists but is hidden from public listing.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -589,6 +589,10 @@
                   "    pm.collectionVariables.set('productId', json.data.id);",
                   "    console.log('productId saved: ' + json.data.id);",
                   "  }",
+                  "  if (json.data && json.data.variants && json.data.variants.length > 0) {",
+                  "    pm.collectionVariables.set('variantId', json.data.variants[0].id);",
+                  "    console.log('variantId saved: ' + json.data.variants[0].id);",
+                  "  }",
                   "}"
                 ]
               }
@@ -628,6 +632,192 @@
               "path": ["products", "{{productId}}"]
             },
             "description": "Requires **ADMIN** or **SELLER** login. **Soft deletes** the product (sets `isActive: false`).\n\n- A **SELLER** can only delete their **own** products (403 otherwise).\n- Fails with 400 if the product is already inactive."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "GET Get All Inventories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory?lowStock=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory"],
+              "query": [
+                {
+                  "key": "productId",
+                  "value": "{{productId}}",
+                  "description": "Optional. Filter by product. Auto-filled after you create a product."
+                },
+                {
+                  "key": "sku",
+                  "value": "IP15PM-256-BLK",
+                  "description": "Optional. Filter by SKU (converted to uppercase for matching)."
+                },
+                {
+                  "key": "lowStock",
+                  "value": "true",
+                  "description": "Optional. Set to true to show only records where available (stock - reserved) <= lowStockThreshold."
+                }
+              ]
+            },
+            "description": "Public. Returns **active** inventory records, newest first.\n\nQuery params (all optional):\n- `productId`: filter by product\n- `sku`: filter by SKU\n- `lowStock`: set to `true` to show only low-stock records\n\nEach record includes a computed `available` (stock - reserved) and an `isLowStock` flag."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Get Inventory By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/{{inventoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", "{{inventoryId}}"]
+            },
+            "description": "Public. Fetches a single **active** inventory record.\n\nPath param:\n- `inventoryId`: set automatically when you run **POST Create Inventory** (or set it manually)."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Create Inventory",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"variantId\": \"{{variantId}}\",\n  \"stock\": 50,\n  \"lowStockThreshold\": 5\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory"]
+            },
+            "description": "Requires **ADMIN** or **SELLER** login.\n\nImportant: create a **product** first — the body uses `{{productId}}` (auto-filled) and `{{variantId}}` (auto-filled with the first variant's id from the Create Product response).\n\nBody fields:\n- `productId` (required, must exist)\n- `variantId` (required, must belong to the product)\n- `stock` (whole number >= 0, optional, defaults to 0)\n- `lowStockThreshold` (whole number >= 0, optional, defaults to 5)\n\nThe `sku` is copied automatically from the product variant.\n\nFails with 409 if an inventory record already exists for this variant.\n\nA test script saves the inventory's `id` into the `inventoryId` collection variable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('inventoryId', json.data.id);",
+                  "    console.log('inventoryId saved: ' + json.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "PATCH Update Inventory",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 45,\n  \"lowStockThreshold\": 10\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/{{inventoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", "{{inventoryId}}"]
+            },
+            "description": "Requires **ADMIN** or **SELLER** login. Partially updates an inventory record. At least one field is required.\n\nOptional fields:\n- `stock` (whole number >= 0)\n- `lowStockThreshold` (whole number >= 0)\n\nNote: unlike the read endpoints, this does NOT filter by `isActive`, so it can update soft-deleted records too."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH Adjust Stock",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 5,\n  \"operation\": \"increase\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/{{inventoryId}}/adjust",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", "{{inventoryId}}", "adjust"]
+            },
+            "description": "Requires **ADMIN** or **SELLER** login. Increases or decreases the physical `stock` count by a quantity.\n\nBody fields:\n- `quantity` (whole number > 0, required)\n- `operation`: `\"increase\"` or `\"decrease\"` (required)\n\nDecreasing fails with 409 if there isn't enough stock (the check is atomic, so stock can never go negative).\n\nTip: try `\"operation\": \"decrease\"` with a quantity larger than the current stock to see the 409."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Reserve Stock",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"variantId\": \"{{variantId}}\",\n      \"quantity\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/reserve",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", "reserve"]
+            },
+            "description": "Requires **ADMIN** or **SELLER** login. Puts stock **on hold** for pending orders by incrementing `reserved` (the physical `stock` is unchanged).\n\nBody:\n- `items` (at least 1, required): array of `{ variantId, quantity }`\n\nEach item only succeeds if `stock - reserved >= quantity`. The whole request is a **transaction**: if ANY variant lacks stock, the entire batch is rolled back and returns 409."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Release Stock",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"variantId\": \"{{variantId}}\",\n      \"quantity\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/release",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", "release"]
+            },
+            "description": "Requires **ADMIN** or **SELLER** login. Takes stock **off hold** (e.g. an order was cancelled) by decrementing `reserved`.\n\nBody:\n- `items` (at least 1, required): array of `{ variantId, quantity }`\n\nEach item only succeeds if `reserved >= quantity`. The whole request is a **transaction**: if ANY variant has insufficient reserved stock, the entire batch is rolled back and returns 409."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Delete Inventory",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory/{{inventoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["inventory", "{{inventoryId}}"]
+            },
+            "description": "Requires **ADMIN** or **SELLER** login. **Soft deletes** the inventory record (sets `isActive: false`).\n\nFails with 400 if already inactive."
           },
           "response": []
         }
@@ -672,6 +862,16 @@
     },
     {
       "key": "productId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "variantId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "inventoryId",
       "value": "",
       "type": "string"
     },

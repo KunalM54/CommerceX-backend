@@ -7,6 +7,7 @@ import userRoutes from "./modules/user/user.routes.js"
 import categoryRoutes from "./modules/category/category.routes.js"
 import brandRoutes from "./modules/brand/brand.routes.js"
 import productRoutes from "./modules/product/product.routes.js"
+import inventoryRoutes from "./modules/inventory/inventory.routes.js"
 
 const app = express()
 
@@ -19,6 +20,7 @@ app.use("/api/v1/users", userRoutes)
 app.use("/api/v1/categories", categoryRoutes)
 app.use("/api/v1/brands", brandRoutes)
 app.use("/api/v1/products", productRoutes)
+app.use("/api/v1/inventory", inventoryRoutes)
 
 app.use(errorHandler)
 export default app;
