@@ -153,63 +153,93 @@ export const adjustStock = async (id: string, payload: AdjustStockDto) => {
   return buildInventoryResponse(await inventory.populate(INVENTORY_POPULATE));
 };
 
-export const reserveStock = async (items: ReserveItem[]) => {
-  const session = await mongoose.startSession();
+const reserveItemsInSession = async (
+  items: ReserveItem[],
+  session: mongoose.ClientSession,
+) => {
+  for (const item of items) {
+    const inventory = await Inventory.findOneAndUpdate(
+      {
+        variantId: item.variantId,
+        isActive: true,
+        $expr: {
+          $gte: [{ $subtract: ["$stock", "$reserved"] }, item.quantity],
+        },
+      },
+      { $inc: { reserved: item.quantity } },
+      { session, new: true },
+    );
 
-  try {
-    await session.withTransaction(async () => {
-      for (const item of items) {
-        const inventory = await Inventory.findOneAndUpdate(
-          {
-            variantId: item.variantId,
-            isActive: true,
-            $expr: {
-              $gte: [{ $subtract: ["$stock", "$reserved"] }, item.quantity],
-            },
-          },
-          { $inc: { reserved: item.quantity } },
-          { session, new: true },
-        );
-
-        if (!inventory) {
-          throw new AppError(
-            409,
-            `Insufficient stock for variant ${item.variantId}`,
-          );
-        }
-      }
-    });
-  } finally {
-    await session.endSession();
+    if (!inventory) {
+      throw new AppError(
+        409,
+        `Insufficient stock for variant ${item.variantId}`,
+      );
+    }
   }
 };
 
-export const releaseReservedStock = async (items: ReserveItem[]) => {
-  const session = await mongoose.startSession();
+export const reserveStock = async (
+  items: ReserveItem[],
+  session?: mongoose.ClientSession,
+) => {
+  if (session) {
+    await reserveItemsInSession(items, session);
+    return;
+  }
+
+  const ownSession = await mongoose.startSession();
 
   try {
-    await session.withTransaction(async () => {
-      for (const item of items) {
-        const inventory = await Inventory.findOneAndUpdate(
-          {
-            variantId: item.variantId,
-            isActive: true,
-            reserved: { $gte: item.quantity },
-          },
-          { $inc: { reserved: -item.quantity } },
-          { session, new: true },
-        );
-
-        if (!inventory) {
-          throw new AppError(
-            409,
-            `No reserved stock found for variant ${item.variantId}`,
-          );
-        }
-      }
+    await ownSession.withTransaction(async () => {
+      await reserveItemsInSession(items, ownSession);
     });
   } finally {
-    await session.endSession();
+    await ownSession.endSession();
+  }
+};
+
+const releaseItemsInSession = async (
+  items: ReserveItem[],
+  session: mongoose.ClientSession,
+) => {
+  for (const item of items) {
+    const inventory = await Inventory.findOneAndUpdate(
+      {
+        variantId: item.variantId,
+        isActive: true,
+        reserved: { $gte: item.quantity },
+      },
+      { $inc: { reserved: -item.quantity } },
+      { session, new: true },
+    );
+
+    if (!inventory) {
+      throw new AppError(
+        409,
+        `No reserved stock found for variant ${item.variantId}`,
+      );
+    }
+  }
+};
+
+export const releaseReservedStock = async (
+  items: ReserveItem[],
+  session?: mongoose.ClientSession,
+) => {
+  if (session) {
+    await releaseItemsInSession(items, session);
+    return;
+  }
+
+  const ownSession = await mongoose.startSession();
+
+  try {
+    await ownSession.withTransaction(async () => {
+      await releaseItemsInSession(items, ownSession);
+    });
+  } finally {
+    await ownSession.endSession();
   }
 };
 

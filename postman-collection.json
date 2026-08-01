@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
     "name": "CommerceX API",
-    "description": "Postman collection for the CommerceX e-commerce backend.\n\n## Base URL\n- Default: `http://localhost:3000/api/v1` (change the `baseUrl` collection variable if needed)\n\n## Authentication\nThis API uses an **httpOnly cookie** named `accessToken`, NOT a Bearer token.\n\n1. Call **POST /auth/login** (or `/auth/register`).\n2. The login response sets the `accessToken` cookie. The collection automatically captures the token into the `accessToken` variable.\n3. A collection-level pre-request script adds the `Cookie: accessToken=...` header to every request automatically, so protected routes \"just work\".\n\n## How the auto-variables work\n- Creating a **Category** saves its `_id` into `categoryId`.\n- Creating a **Brand** saves its `_id` into `brandId`.\n- Creating a **Product** saves its `id` into `productId`, and its first variant's `id` into `variantId`.\n- Creating an **Inventory** saves its `id` into `inventoryId`.\n- Creating a **User** (admin) saves its `id` into `userId`.\n\nThe **Cart** endpoints all act on the **currently logged-in user's** cart (one cart per user) and use `{{variantId}}` for their items.\n\nThis means you can run the requests in order and they will chain together automatically.\n\n## Suggested workflow\n1. POST /auth/register (customer)\n2. POST /auth/login\n3. Create an admin user via **POST /users/create** with `\"role\": \"ADMIN\"`, then login with that admin account to access admin-only routes.\n4. Create a category, then a brand, then a product.\n\n## Notes\n- Password rules: 4 to 10 characters.\n- Phone number must use E.164 format, e.g. `+919876543210`.\n- The `/forgot-password` flow prints the reset token / OTP to the **server console** in development. Copy it from there into the `/reset-password` body.\n- Deletes are **soft deletes** (they set `isActive: false`), so the record still exists but is hidden from public listing.",
+    "description": "Postman collection for the CommerceX e-commerce backend.\n\n## Base URL\n- Default: `http://localhost:3000/api/v1` (change the `baseUrl` collection variable if needed)\n\n## Authentication\nThis API uses an **httpOnly cookie** named `accessToken`, NOT a Bearer token.\n\n1. Call **POST /auth/login** (or `/auth/register`).\n2. The login response sets the `accessToken` cookie. The collection automatically captures the token into the `accessToken` variable.\n3. A collection-level pre-request script adds the `Cookie: accessToken=...` header to every request automatically, so protected routes \"just work\".\n\n## How the auto-variables work\n- Creating a **Category** saves its `_id` into `categoryId`.\n- Creating a **Brand** saves its `_id` into `brandId`.\n- Creating a **Product** saves its `id` into `productId`, and its first variant's `id` into `variantId`.\n- Creating an **Inventory** saves its `id` into `inventoryId`.\n- Creating an **Address** saves its `id` into `addressId`.\n- Creating a **User** (admin) saves its `id` into `userId`.\n\nThe **Cart** endpoints all act on the **currently logged-in user's** cart (one cart per user) and use `{{variantId}}` for their items. **Checkout** turns that cart into an order using `{{addressId}}`.\n\nThis means you can run the requests in order and they will chain together automatically.\n\n## Suggested workflow\n1. POST /auth/register (customer)\n2. POST /auth/login\n3. Create an admin user via **POST /users/create** with `\"role\": \"ADMIN\"`, then login with that admin account to access admin-only routes.\n4. Create a category, then a brand, then a product.\n\n## Notes\n- Password rules: 4 to 10 characters.\n- Phone number must use E.164 format, e.g. `+919876543210`.\n- The `/forgot-password` flow prints the reset token / OTP to the **server console** in development. Copy it from there into the `/reset-password` body.\n- Deletes are **soft deletes** (they set `isActive: false`), so the record still exists but is hidden from public listing.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -897,6 +897,138 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Address",
+      "item": [
+        {
+          "name": "POST Create Address",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"SHIPPING\",\n  \"fullName\": \"John Doe\",\n  \"phone\": \"+919876543210\",\n  \"line1\": \"221B Baker Street\",\n  \"city\": \"Mumbai\",\n  \"state\": \"Maharashtra\",\n  \"country\": \"India\",\n  \"pincode\": \"400001\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/addresses",
+              "host": ["{{baseUrl}}"],
+              "path": ["addresses"]
+            },
+            "description": "Requires login (any role). Saves an address for the logged-in user.\n\nBody fields:\n- `type`: `SHIPPING` or `BILLING` (optional, defaults to `SHIPPING`)\n- `fullName`, `phone`, `line1`, `city`, `state`, `country`, `pincode` (required)\n- `line2` (optional)\n- `country` defaults to `India` if omitted.\n\nA test script saves the created address's `id` into the `addressId` collection variable (used by checkout and the other address requests)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.id) {",
+                  "    pm.collectionVariables.set('addressId', json.data.id);",
+                  "    console.log('addressId saved: ' + json.data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "GET Get My Addresses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/addresses",
+              "host": ["{{baseUrl}}"],
+              "path": ["addresses"]
+            },
+            "description": "Requires login (any role). Returns the logged-in user's **active** addresses, newest first.\n\nOptional query param:\n- `type`: filter by `SHIPPING` or `BILLING`.\n\nOnly the user's own addresses are returned."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Get Address By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/addresses/{{addressId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["addresses", "{{addressId}}"]
+            },
+            "description": "Requires login (any role). Fetches a single address.\n\nPath param:\n- `addressId`: set automatically when you run **POST Create Address** (or set it manually).\n\nReturns 404 if the address doesn't exist, is inactive, or belongs to another user."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH Update Address",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"Pune\",\n  \"pincode\": \"411001\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/addresses/{{addressId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["addresses", "{{addressId}}"]
+            },
+            "description": "Requires login (any role). Partially updates one of the user's own addresses. At least one field is required.\n\nAll body fields from Create are optional here. Returns 404 if the address isn't the user's own."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Delete Address",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/addresses/{{addressId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["addresses", "{{addressId}}"]
+            },
+            "description": "Requires login (any role). **Soft deletes** one of the user's own addresses (sets `isActive: false`).\n\nReturns 404 if the address isn't the user's own, and 400 if already inactive."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Checkout",
+      "item": [
+        {
+          "name": "POST Checkout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shippingAddressId\": \"{{addressId}}\",\n  \"billingAddressId\": \"{{addressId}}\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/checkout",
+              "host": ["{{baseUrl}}"],
+              "path": ["checkout"]
+            },
+            "description": "Requires login (any role). Converts the user's cart into an **order** and returns the **order summary**.\n\nBody fields:\n- `shippingAddressId` (required, must be one of the user's active addresses)\n- `billingAddressId` (optional — if omitted, the shipping address is used)\n\nWhat happens (all inside one **transaction**):\n1. Stock for every cart line is **reserved** via the Inventory module (409 if any variant lacks stock).\n2. An **Order** is created with `status: PENDING` and snapshots of the items + both addresses.\n3. The user's cart is **cleared**.\n\nIf any step fails, everything rolls back. Requires addresses + a non-empty cart."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "event": [
@@ -947,6 +1079,11 @@
     },
     {
       "key": "inventoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "addressId",
       "value": "",
       "type": "string"
     },
