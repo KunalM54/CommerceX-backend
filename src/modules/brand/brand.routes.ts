@@ -20,21 +20,21 @@ router.get("/:id", getBrandByIdController);
 router.post(
   "/",
   authenticate,
-  authorize(UserRole.ADMIN),
+  authorize(UserRole.ADMIN, UserRole.SELLER),
   validate(createBrandSchema),
   createBrandController,
 );
 router.patch(
   "/:id",
   authenticate,
-  authorize(UserRole.ADMIN),
+  authorize(UserRole.ADMIN, UserRole.SELLER),
   validate(updateBrandSchema),
   updateBrandController,
 );
 router.delete(
   "/:id",
   authenticate,
-  authorize(UserRole.ADMIN),
+  authorize(UserRole.ADMIN, UserRole.SELLER),
   deleteBrandController,
 );
 

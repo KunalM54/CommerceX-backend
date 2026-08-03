@@ -11,7 +11,7 @@ const router = Router();
 
 router.post("/create", authenticate, authorize(UserRole.ADMIN), validate(createUserSchema), createUserController);
 router.get("/getAll", authenticate, authorize(UserRole.ADMIN), getAllUserController);
-router.get("/:id",authenticate, authorize(UserRole.ADMIN),  validate(updateUserSchema), getUserByIdController);
+router.get("/:id", authenticate, authorize(UserRole.ADMIN), getUserByIdController);
 router.patch("/:id",authenticate, authorize(UserRole.ADMIN), validate(updateUserSchema), updateUserController);
 router.delete("/:id",authenticate, authorize(UserRole.ADMIN), deleteUserController);
 
