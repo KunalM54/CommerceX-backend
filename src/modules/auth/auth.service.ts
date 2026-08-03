@@ -156,7 +156,7 @@ export const forgotPassword = async (identifier: string) => {
       },
       {
         upsert: true,
-        new: true,
+        returnDocument: "after",
       },
     );
 

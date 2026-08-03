@@ -143,7 +143,7 @@ export const adjustStock = async (id: string, payload: AdjustStockDto) => {
   const inventory = await Inventory.findOneAndUpdate(
     filter,
     { $inc: { stock: increment } },
-    { new: true },
+    { returnDocument: "after" },
   );
 
   if (!inventory) {
@@ -167,7 +167,7 @@ const reserveItemsInSession = async (
         },
       },
       { $inc: { reserved: item.quantity } },
-      { session, new: true },
+      { session, returnDocument: "after" },
     );
 
     if (!inventory) {
@@ -211,7 +211,7 @@ const releaseItemsInSession = async (
         reserved: { $gte: item.quantity },
       },
       { $inc: { reserved: -item.quantity } },
-      { session, new: true },
+      { session, returnDocument: "after" },
     );
 
     if (!inventory) {
