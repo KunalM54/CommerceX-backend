@@ -8,4 +8,7 @@ export const env = {
     MONGO_URI : process.env.MONGO_URI!,
     JWT_ACCESS_SECRET : process.env.JWT_ACCESS_SECRET!,
     JWT_ACCESS_EXPIRES_IN : process.env.JWT_ACCESS_EXPIRES_IN! as NonNullable<SignOptions["expiresIn"]>,
+    RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID!,
+    RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET!,
+    RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET!,
 }

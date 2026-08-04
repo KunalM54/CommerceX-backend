@@ -1029,6 +1029,122 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Razorpay Payments",
+      "item": [
+        {
+          "name": "POST Initiate Checkout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payment/checkout",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "payment",
+                "checkout"
+              ]
+            },
+            "description": "Requires login. Initiates a payment checkout on Razorpay for items currently in the cart and returns the razorpayOrderId."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.razorpayOrder && json.data.razorpayOrder.id) {",
+                  "    pm.collectionVariables.set('razorpayOrderId', json.data.razorpayOrder.id);",
+                  "    console.log('razorpayOrderId saved: ' + json.data.razorpayOrder.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST Verify Payment Signature",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpayOrderId\": \"{{razorpayOrderId}}\",\n  \"razorpayPaymentId\": \"{{razorpayPaymentId}}\",\n  \"razorpaySignature\": \"{{razorpaySignature}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/verify",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "payment",
+                "verify"
+              ]
+            },
+            "description": "Requires login. Verifies the cryptographic payment signature returned by Razorpay."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const razorpayOrderId = pm.collectionVariables.get('razorpayOrderId');",
+                  "const razorpayPaymentId = 'pay_test_' + Math.floor(Math.random() * 1000000);",
+                  "const razorpayKeySecret = 'uLHB3g9CT7pXHEm0dQD3tmLB';",
+                  "",
+                  "const text = razorpayOrderId + '|' + razorpayPaymentId;",
+                  "const signature = CryptoJS.HmacSHA256(text, razorpayKeySecret).toString(CryptoJS.enc.Hex);",
+                  "",
+                  "pm.collectionVariables.set('razorpayPaymentId', razorpayPaymentId);",
+                  "pm.collectionVariables.set('razorpaySignature', signature);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "POST Webhook Callback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-razorpay-signature",
+                "value": "REPLACE_WITH_WEBHOOK_SIGNATURE_HEADER",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"order.paid\",\n  \"payload\": {\n    \"order\": {\n      \"entity\": {\n        \"id\": \"order_ABC123\"\n      }\n    },\n    \"payment\": {\n      \"entity\": {\n        \"id\": \"pay_XYZ789\"\n      }\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "payment",
+                "webhook"
+              ]
+            },
+            "description": "Public callback endpoint for Razorpay webhooks. Validates signature and completes order process."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "event": [
@@ -1089,6 +1205,21 @@
     },
     {
       "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "razorpayOrderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "razorpayPaymentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "razorpaySignature",
       "value": "",
       "type": "string"
     }
