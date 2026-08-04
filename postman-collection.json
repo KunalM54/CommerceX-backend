@@ -1145,6 +1145,54 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "GET Get Order History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "description": "Requires login. Retrieves the order history for the logged-in customer."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Get Order History (Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders?status=paid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "paid",
+                  "description": "Filter by status (pending, paid, failed, cancelled)"
+                }
+              ]
+            },
+            "description": "Requires login. Retrieves the order history filtered by status."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "event": [
