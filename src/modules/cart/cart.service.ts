@@ -14,7 +14,7 @@ const assertValidObjectId = (id: string, message: string) => {
   }
 };
 
-const findProductVariant = async (variantId: string) => {
+export const findProductVariant = async (variantId: string) => {
   const product = await Product.findOne({
     isActive: true,
     variants: { $elemMatch: { _id: variantId, isActive: true } },
@@ -31,7 +31,7 @@ const findProductVariant = async (variantId: string) => {
   return { product, variant };
 };
 
-const assertEnoughStock = async (variantId: string, quantity: number) => {
+export const assertEnoughStock = async (variantId: string, quantity: number) => {
   const inventory = await Inventory.findOne({ variantId, isActive: true });
 
   if (inventory && inventory.stock - inventory.reserved < quantity) {

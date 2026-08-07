@@ -3,6 +3,7 @@ import { sendResponse } from "../../utils/response.js";
 import { AppError } from "../../utils/AppError.js";
 import {
   checkoutCart,
+  checkoutDirect,
   verifyPaymentSignature,
   handleWebhookEvent,
 } from "./payment.service.js";
@@ -14,6 +15,22 @@ import {
 export const checkoutController = asyncHandler(async (req, res) => {
   const userId = req.user.userId;
   const result = await checkoutCart(userId);
+
+  return sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: "Razorpay order initiated successfully",
+    data: result,
+  });
+});
+
+/**
+ * 1b. Direct Checkout Controller (Buy Now)
+ * Creates a Razorpay order for the requested variants without touching the cart.
+ */
+export const checkoutDirectController = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const result = await checkoutDirect(userId, req.body);
 
   return sendResponse(res, {
     statusCode: 201,

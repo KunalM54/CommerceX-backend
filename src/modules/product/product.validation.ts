@@ -5,7 +5,10 @@ const variantSchema = z.object({
   attributes: z.record(z.string(), z.string()).optional(),
   sku: z.string().trim().min(1, "SKU is required").max(50),
   price: z.number().positive("Price must be greater than 0"),
-  images: z.array(z.string().trim()).optional(),
+  images: z
+    .array(z.string().trim().url("Invalid image URL"))
+    .max(4, "Maximum 4 images allowed")
+    .optional(),
 });
 
 export const createProductSchema = z.object({
@@ -13,7 +16,10 @@ export const createProductSchema = z.object({
   description: z.string().trim().max(1000).optional(),
   categoryId: z.string().trim().min(1, "Category is required"),
   brandId: z.string().trim().min(1, "Brand is required"),
-  images: z.array(z.string().trim()).optional(),
+  images: z
+    .array(z.string().trim().url("Invalid image URL"))
+    .min(1, "At least one product image is required")
+    .max(4, "Maximum 4 product images allowed"),
   variants: z.array(variantSchema).min(1, "At least one variant is required"),
 });
 
@@ -25,7 +31,11 @@ export const updateProductSchema = z
     description: z.string().trim().max(1000).optional(),
     categoryId: z.string().trim().min(1).optional(),
     brandId: z.string().trim().min(1).optional(),
-    images: z.array(z.string().trim()).optional(),
+    images: z
+      .array(z.string().trim().url("Invalid image URL"))
+      .min(1, "At least one product image is required")
+      .max(4, "Maximum 4 product images allowed")
+      .optional(),
     variants: z.array(variantSchema).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {

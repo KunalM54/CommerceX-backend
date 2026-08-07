@@ -12,10 +12,12 @@ import cartRoutes from "./modules/cart/cart.routes.js"
 import addressRoutes from "./modules/address/address.routes.js"
 import paymentRoutes from "./modules/payment/payment.routes.js"
 import orderRoutes from "./modules/order/order.routes.js"
+import uploadRoutes from "./modules/upload/upload.routes.js"
 
 const app = express()
 
-app.use(express.json());
+// Base64 image uploads need a larger body limit
+app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
 app.use("/api/v1/health", healthRoutes)
@@ -29,6 +31,7 @@ app.use("/api/v1/cart", cartRoutes)
 app.use("/api/v1/addresses", addressRoutes)
 app.use("/api/v1/payment", paymentRoutes)
 app.use("/api/v1/orders", orderRoutes)
+app.use("/api/v1/uploads", uploadRoutes)
 
 app.use(errorHandler)
 export default app;

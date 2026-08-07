@@ -120,6 +120,7 @@ export const createProduct = async (
 export const getAllProducts = async (query: {
   categoryId?: string;
   brandId?: string;
+  sellerId?: string;
 }) => {
   const filter: Record<string, unknown> = { isActive: true };
 
@@ -129,6 +130,11 @@ export const getAllProducts = async (query: {
 
   if (query.brandId) {
     filter.brand = query.brandId;
+  }
+
+  if (query.sellerId) {
+    assertValidObjectId(query.sellerId, "Invalid seller id");
+    filter.seller = query.sellerId;
   }
 
   const products = await Product.find(filter)
